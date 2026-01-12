@@ -16,11 +16,15 @@
 
 	let qrCanvas: HTMLCanvasElement;
 
+	function getPeerLink(peerid: string): string {
+		return `${window.location.origin}/#peer=${peerid}`;
+	}
+
 	$effect(() => {
 		if (state.peerid && qrCanvas) {
-			const qr = new QRious({
+			new QRious({
 				element: qrCanvas,
-				value: `${window.location.origin}/#peer=${state.peerid}`,
+				value: getPeerLink(state.peerid),
 				size: 256
 			});
 		}
@@ -73,7 +77,7 @@
 
 	function copyLink() {
 		navigator.clipboard
-			.writeText(`${window.location.origin}/#peer=${state.peerid}`)
+			.writeText(getPeerLink(state.peerid))
 			.then(() => {
 				// TODO: Replace with a better notification system
 				// maybe a toast or a popup
