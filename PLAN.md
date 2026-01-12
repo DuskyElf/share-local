@@ -16,10 +16,11 @@ We're building share-local to solve that awkward "how do I get this file to you?
 
 ## The Build Plan
 1. Get SvelteKit running with TailwindCSS
-2. Make PeerJS connect two devices (the hard part)
-3. Add QR code magic for easy pairing
-4. Build the file explorer with upload/download
-5. Polish the rough edges and ship to Cloudflare Pages
+1. Make PeerJS connect two devices (the hard part)
+1. Design the protocol for communication between the peers
+1. Build the file explorer with upload/download
+1. Polish the rough edges and ship to Cloudflare Pages
+1. Add QR code magic for easy pairing
 
 ## Deployment
 Continuous Integration via Cloudflare's CI / CD pipeline, hosting on share-local.pages.dev for now
