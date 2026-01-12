@@ -2,16 +2,33 @@
 	import * as PeerJS from 'peerjs';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { onMount } from 'svelte';
+	import QRious from 'qrious';
 
 	interface State {
 		peerid: string;
 		state: 'idle' | 'connected' | 'connecting' | 'disconnected';
 	}
 
-	let state: State = {
+	let state = $state<State>({
 		peerid: '',
 		state: 'idle'
-	};
+	});
+
+	let qrCanvas: HTMLCanvasElement;
+
+	function getPeerLink(peerid: string): string {
+		return `${window.location.origin}/#peer=${peerid}`;
+	}
+
+	$effect(() => {
+		if (state.peerid && qrCanvas) {
+			new QRious({
+				element: qrCanvas,
+				value: getPeerLink(state.peerid),
+				size: 256
+			});
+		}
+	});
 
 	onMount(() => {
 		const peer = new PeerJS.Peer();
@@ -38,8 +55,10 @@
 		}
 
 		peer.on('error', (err) => {
-			state.state = 'disconnected';
 			console.error(err);
+			if (state.state === 'connecting') {
+				state.state = 'disconnected';
+			}
 		});
 	});
 
@@ -60,7 +79,7 @@
 
 	function copyLink() {
 		navigator.clipboard
-			.writeText(`${window.location.origin}/#peer=${state.peerid}`)
+			.writeText(getPeerLink(state.peerid))
 			.then(() => {
 				// TODO: Replace with a better notification system
 				// maybe a toast or a popup
@@ -80,7 +99,7 @@
 		<p>Hold on, connecting...</p>
 	{:else if state.state === 'idle'}
 		<!-- QR Code -->
-		<img src="https://randomqr.com/assets/images/randomqr-256.png" alt="" />
+		<canvas bind:this={qrCanvas}></canvas>
 
 		<Button onclick={copyLink} class="rounded">Copy link</Button>
 	{:else if state.state === 'connected'}
