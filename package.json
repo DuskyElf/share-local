@@ -42,6 +42,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
-		"peerjs": "^1.5.5"
+		"peerjs": "^1.5.5",
+		"qrious": "^4.0.2"
 	}
 }
