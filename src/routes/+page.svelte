@@ -1,8 +1,8 @@
 <script lang="ts">
 	import * as PeerJS from 'peerjs';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import QRCode from '$lib/components/ui/qr-code/qr-code.svelte';
 	import { onMount } from 'svelte';
-	import QRious from 'qrious';
 
 	interface State {
 		peerid: string;
@@ -14,21 +14,9 @@
 		state: 'idle'
 	});
 
-	let qrCanvas: HTMLCanvasElement;
-
 	function getPeerLink(peerid: string): string {
 		return `${window.location.origin}/#peer=${peerid}`;
 	}
-
-	$effect(() => {
-		if (state.peerid && qrCanvas) {
-			new QRious({
-				element: qrCanvas,
-				value: getPeerLink(state.peerid),
-				size: 256
-			});
-		}
-	});
 
 	onMount(() => {
 		const peer = new PeerJS.Peer();
@@ -98,9 +86,7 @@
 	{#if state.state === 'connecting'}
 		<p>Hold on, connecting...</p>
 	{:else if state.state === 'idle'}
-		<!-- QR Code -->
-		<canvas bind:this={qrCanvas}></canvas>
-
+		<QRCode value={getPeerLink(state.peerid)} size={256} />
 		<Button onclick={copyLink} class="rounded">Copy link</Button>
 	{:else if state.state === 'connected'}
 		<p>Connected! You can now share data.</p>
