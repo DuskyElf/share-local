@@ -56,12 +56,7 @@
 
 		peer.on('error', (err) => {
 			console.error(err);
-			// If we don't have a peer ID yet and we're in idle state, generate a fallback ID
-			// This allows the QR code to be shown even if PeerJS server is unavailable
-			if (!state.peerid && state.state === 'idle') {
-				state.peerid = 'peer-' + Math.random().toString(36).substring(2, 15);
-				console.log('Using fallback peer ID:', state.peerid);
-			} else if (state.state === 'connecting') {
+			if (state.state === 'connecting') {
 				state.state = 'disconnected';
 			}
 		});
