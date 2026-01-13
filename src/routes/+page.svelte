@@ -7,7 +7,7 @@
 
 	import Button from '$lib/components/ui/button/button.svelte';
 	import ThemeToggle from '$lib/components/ui/theme-toggle.svelte';
-	
+
 	import { fireConfetti } from '$lib/confetti';
 
 	interface State {
@@ -117,7 +117,7 @@
 >
 	<!-- Header -->
 	<div class="flex flex-col items-center gap-3">
-		<img src="/logo.png" alt="local share logo" class="h-10 w-10" />
+		<img src="/logo.png" alt="local share logo" class="size-10" />
 
 		<div class="space-y-1 text-center">
 			<h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Share Local</h1>
