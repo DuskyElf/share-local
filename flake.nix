@@ -21,6 +21,7 @@
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             nodejs
+            pnpm
             prettierd
             svelte-language-server
             tailwindcss-language-server
