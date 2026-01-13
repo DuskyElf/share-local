@@ -123,7 +123,7 @@
 			<h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Share Local</h1>
 
 			<p class="max-w-xs text-sm text-muted-foreground sm:max-w-none">
-				Scan a QR or share a link to connect peer-to-peer
+				Share files locally with ease, via a link or QR code
 			</p>
 		</div>
 	</div>
