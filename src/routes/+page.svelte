@@ -3,18 +3,26 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
+	import QrCode from '$lib/components/ui/qr-code/qr-code.svelte';
+
 	import Button from '$lib/components/ui/button/button.svelte';
 	import ThemeToggle from '$lib/components/ui/theme-toggle.svelte';
+	
+	import { fireConfetti } from '$lib/confetti';
 
 	interface State {
 		peerid: string;
 		state: 'idle' | 'connected' | 'connecting' | 'disconnected';
 	}
 
-	let state: State = {
+	let state = $state<State>({
 		peerid: '',
 		state: 'idle'
-	};
+	});
+
+	function getPeerLink(peerid: string): string {
+		return `${window.location.origin}/#peer=${peerid}`;
+	}
 
 	let peer: PeerJS.Peer;
 	let connection: PeerJS.DataConnection | null = null;
@@ -22,12 +30,14 @@
 	onMount(() => {
 		peer = new PeerJS.Peer();
 
+		// check if we are joining an existing peer via URL
 		const peerIdInUrl = new URLSearchParams(window.location.hash.replace('#', '?')).get('peer');
 
 		peer.on('open', (id) => {
 			state = { ...state, peerid: id };
 
 			if (peerIdInUrl) {
+				// auto-connect if peer id exists in URL
 				state = { ...state, state: 'connecting' };
 				const conn = peer.connect(peerIdInUrl);
 				handleConnection(conn);
@@ -42,6 +52,7 @@
 			toast.error('Peer error occurred');
 		});
 
+		// close connection when tab/window closes
 		const handleUnload = () => {
 			if (connection?.open) {
 				connection.close();
@@ -50,6 +61,7 @@
 
 		window.addEventListener('beforeunload', handleUnload);
 
+		// cleanup the peer event
 		return () => {
 			window.removeEventListener('beforeunload', handleUnload);
 			peer.destroy();
@@ -60,8 +72,15 @@
 		connection = conn;
 		state = { ...state, state: 'connected' };
 
+		let hasCelebrated = false;
+
 		conn.on('open', () => {
+			// Prevent duplicate success effects (confettti, toast)
+			if (hasCelebrated) return;
+			hasCelebrated = true;
+
 			toast.success(`Connected to peer ${conn.peer}`);
+			fireConfetti();
 		});
 
 		conn.on('close', () => {
@@ -76,6 +95,7 @@
 		});
 	}
 
+	// Copy shareable link to clipboard
 	async function copyLink() {
 		if (!state.peerid) {
 			toast.error('Peer ID not ready yet');
@@ -92,60 +112,59 @@
 	}
 </script>
 
-<main class="bg-dark-pattern flex min-h-screen flex-col items-center justify-center space-y-6 px-4">
-	<div class="flex flex-col items-center">
-		<img src="./logo.png" alt="local share logo" width="40" height="40" />
+<main
+	class="bg-dark-pattern flex min-h-screen flex-col items-center justify-center px-4 py-8 sm:py-12"
+>
+	<!-- Header -->
+	<div class="flex flex-col items-center gap-3">
+		<img src="/logo.png" alt="local share logo" class="h-10 w-10" />
 
-		<div>
-			<h1 class="text-center text-3xl font-semibold tracking-tight">Share Local</h1>
+		<div class="space-y-1 text-center">
+			<h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Share Local</h1>
 
-			<p class="text-center text-sm text-muted-foreground">
+			<p class="max-w-xs text-sm text-muted-foreground sm:max-w-none">
 				Scan a QR or share a link to connect peer-to-peer
 			</p>
 		</div>
 	</div>
 
+	<!-- Theme toggle -->
 	<div class="absolute top-4 right-4">
 		<ThemeToggle />
 	</div>
 
-	<div class="w-full max-w-md">
-		<div class="rounded-xl border-3 bg-background px-4 py-10 shadow-sm sm:px-6 sm:py-12">
+	<!-- Card -->
+	<div class="mt-6 w-full max-w-md sm:mt-8">
+		<div class="rounded-xl border bg-background px-5 py-8 shadow-sm sm:px-6 sm:py-10">
 			{#if state.state === 'connecting'}
 				<p class="text-center text-sm text-muted-foreground">Connecting to peer…</p>
 			{:else if state.state === 'idle'}
-				<div class="flex flex-col items-center gap-4">
-					<img
-						src="https://randomqr.com/assets/images/randomqr-256.png"
-						alt="QR Code"
-						class="h-60 w-60 rounded-md border sm:h-80 sm:w-80"
-					/>
+				<div class="flex flex-col items-center gap-5">
+					<QrCode value={getPeerLink(state.peerid)} size={256} />
 
-					<Button onclick={copyLink} disabled={!state.peerid} class="w-60 sm:min-w-80">
-						Copy Share Link
+					<Button onclick={copyLink} disabled={!state.peerid} class="w-full sm:w-70">
+						Copy share link
 					</Button>
 
-					<p class="text-sm text-muted-foreground sm:text-base">
+					<p class="text-center text-sm text-muted-foreground">
 						Share this link or scan the QR to connect
 					</p>
 				</div>
 			{:else if state.state === 'connected'}
-				<div class="flex flex-col items-center gap-3 text-center">
-					<p class="text-sm font-medium text-green-600 dark:text-green-400">
+				<div class="flex flex-col items-center gap-4 text-center">
+					<p class="text-sm font-medium text-green-600 md:text-base dark:text-green-400">
 						Connected successfully
 					</p>
 
-					<p class="muted-foreground text-sm sm:text-base">You can now start sharing data</p>
+					<p class="text-sm text-muted-foreground">You can now start sharing data</p>
 
 					<Button variant="outline" class="w-full">Coming soon: File Explorer</Button>
 				</div>
 			{:else if state.state === 'disconnected'}
-				<div class="flex flex-col items-center gap-3 text-center">
-					<p class="text-sm font-medium text-destructive sm:text-base">Disconnected</p>
+				<div class="flex flex-col items-center gap-4 text-center">
+					<p class="text-sm font-medium text-destructive">Disconnected</p>
 
-					<p class="sm:text-md text-sm text-muted-foreground">
-						Please refresh the page to reconnect
-					</p>
+					<p class="text-sm text-muted-foreground">Please refresh the page to reconnect</p>
 
 					<Button onclick={() => window.location.reload()} variant="outline" class="w-full">
 						Refresh
