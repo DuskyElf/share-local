@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 
 	import QrCode from '$lib/components/ui/qr-code/qr-code.svelte';
-
+	import GithubRibbon from '$lib/components/ui/github-ribbon/github-ribbon.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import ThemeToggle from '$lib/components/ui/theme-toggle.svelte';
 
@@ -132,6 +132,9 @@
 	<div class="absolute top-4 right-4">
 		<ThemeToggle />
 	</div>
+
+	<!-- Github ribbon -->
+	<GithubRibbon repo="duskyelf/share-local" />
 
 	<!-- Card -->
 	<div class="mt-6 w-full max-w-md sm:mt-8">

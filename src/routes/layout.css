@@ -109,6 +109,25 @@
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
+
+	--animate-fade-down: fade-down 500ms ease-in-out;
+
+	@keyframes wave {
+		0%,
+		100% {
+			transform: rotate(0);
+		}
+
+		20%,
+		60% {
+			transform: rotate(-25deg);
+		}
+
+		40%,
+		80% {
+			transform: rotate(10deg);
+		}
+	}
 }
 
 @layer base {
