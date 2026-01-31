@@ -10,14 +10,28 @@
 
 	import { fireConfetti } from '$lib/confetti';
 
-	interface State {
-		peerid: string;
-		state: 'idle' | 'connected' | 'connecting' | 'disconnected';
-	}
+	type State =
+		| {
+				state: 'connecting';
+		  }
+		| {
+				state: 'idle';
+				peerId: string;
+		  }
+		| {
+				state: 'dialing';
+				remotePeerId: string;
+		  }
+		| {
+				state: 'connected';
+				connection: PeerJS.DataConnection;
+		  }
+		| {
+				state: 'disconnected';
+		  };
 
 	let state = $state<State>({
-		peerid: '',
-		state: 'idle'
+		state: 'connecting'
 	});
 
 	function getPeerLink(peerid: string): string {
@@ -34,14 +48,13 @@
 		const peerIdInUrl = new URLSearchParams(window.location.hash.replace('#', '?')).get('peer');
 
 		peer.on('open', (id) => {
-			state = { ...state, peerid: id };
-
 			if (peerIdInUrl) {
 				// auto-connect if peer id exists in URL
-				state = { ...state, state: 'connecting' };
+				state = { state: 'dialing', remotePeerId: peerIdInUrl };
 				const conn = peer.connect(peerIdInUrl);
 				handleConnection(conn);
 			} else {
+				state = { state: 'idle', peerId: id };
 				peer.on('connection', handleConnection);
 			}
 		});
@@ -75,7 +88,7 @@
 		conn.on('open', () => {
 			// Prevent duplicate success effects (confettti, toast)
 			if (hasCelebrated) return;
-			state = { ...state, state: 'connected' };
+			state = { state: 'connected', connection: conn };
 			hasCelebrated = true;
 
 			toast.success(`Connected to peer ${conn.peer}`);
@@ -83,7 +96,7 @@
 		});
 
 		conn.on('close', () => {
-			state = { ...state, state: 'disconnected' };
+			state = { state: 'disconnected' };
 			toast.warning('Peer disconnected');
 		});
 
@@ -95,13 +108,13 @@
 
 	// Copy shareable link to clipboard
 	async function copyLink() {
-		if (!state.peerid) {
+		if (state.state !== 'idle') {
 			toast.error('Peer ID not ready yet');
 			return;
 		}
 
 		try {
-			await navigator.clipboard.writeText(`${window.location.origin}/#peer=${state.peerid}`);
+			await navigator.clipboard.writeText(`${window.location.origin}/#peer=${state.peerId}`);
 			toast.success('Link copied to clipboard!');
 		} catch (err) {
 			console.error('Failed to copy link:', err);
@@ -138,14 +151,16 @@
 	<div class="mt-6 w-full max-w-md sm:mt-8">
 		<div class="rounded-xl border bg-background px-5 py-8 shadow-sm sm:px-6 sm:py-10">
 			{#if state.state === 'connecting'}
-				<p class="text-center text-sm text-muted-foreground">Connecting to peer…</p>
+				<p class="text-center text-sm text-muted-foreground">Initializing peer…</p>
+			{:else if state.state === 'dialing'}
+				<p class="text-center text-sm text-muted-foreground">
+					Connecting to peer {state.remotePeerId}…
+				</p>
 			{:else if state.state === 'idle'}
 				<div class="flex flex-col items-center gap-5">
-					<QrCode value={getPeerLink(state.peerid)} size={256} />
+					<QrCode value={getPeerLink(state.peerId)} size={256} />
 
-					<Button onclick={copyLink} disabled={!state.peerid} class="w-full sm:w-70">
-						Copy share link
-					</Button>
+					<Button onclick={copyLink} class="w-full sm:w-70">Copy share link</Button>
 
 					<p class="text-center text-sm text-muted-foreground">
 						Share this link or scan the QR to connect
