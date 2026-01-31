@@ -47,7 +47,6 @@
 		});
 
 		peer.on('error', (err) => {
-			state = { ...state, state: 'disconnected' };
 			console.error(err);
 			toast.error('Peer error occurred');
 		});
@@ -70,13 +69,13 @@
 
 	function handleConnection(conn: PeerJS.DataConnection) {
 		connection = conn;
-		state = { ...state, state: 'connected' };
 
 		let hasCelebrated = false;
 
 		conn.on('open', () => {
 			// Prevent duplicate success effects (confettti, toast)
 			if (hasCelebrated) return;
+			state = { ...state, state: 'connected' };
 			hasCelebrated = true;
 
 			toast.success(`Connected to peer ${conn.peer}`);
@@ -89,7 +88,6 @@
 		});
 
 		conn.on('error', (err) => {
-			state = { ...state, state: 'disconnected' };
 			console.error('Connection error:', err);
 			toast.error('Connection lost');
 		});
