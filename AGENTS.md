@@ -9,7 +9,8 @@ share-local enables direct device-to-device file sharing via QR codes or links, 
 ## Tech Stack
 
 - **Svelte 5** with runes (`$state`, `$props`, `$bindable`)
-- **SvelteKit** with static adapter for Cloudflare Pages
+- **SvelteKit 3** with static adapter for Cloudflare Pages
+- **Vite 8** and **TypeScript 6** (Node >= 22.17)
 - **Tailwind CSS 4** with `tailwind-variants`
 - **PeerJS** for WebRTC peer connections
 - **QRious** for QR code generation
@@ -18,7 +19,9 @@ share-local enables direct device-to-device file sharing via QR codes or links, 
 
 - **Static SPA**: Uses `adapter-static` with `fallback: 'index.html'`
 - **Hash-based peer linking**: Peer ID passed via URL hash (`#peer=xyz`)
-- **Connection state machine**: `idle → connecting → connected → disconnected`
+- **Connection state machine**: `connecting → idle → dialing → connected → disconnected`
+- **Imports**: `#lib/*` subpath imports, configured in `package.json`
+- **Meta tags**: live in `src/app.html`, not `<svelte:head>`, because SSR is disabled
 - **UI Components**: Custom Button, QR Code, Theme Toggle (mode-watcher), Sonner toast notifications
 
 ---
