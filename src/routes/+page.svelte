@@ -28,6 +28,10 @@
 		  }
 		| {
 				state: 'disconnected';
+		  }
+		| {
+				state: 'failed';
+				message: string;
 		  };
 
 	let state = $state<State>({
@@ -42,7 +46,19 @@
 	let connection: PeerJS.DataConnection | null = null;
 
 	onMount(() => {
-		peer = new PeerJS.Peer();
+		peer = new PeerJS.Peer({
+			config: {
+				// STUN only, no TURN by design: a connection needs a direct route
+				// between the two devices, which usually means the same network but
+				// also works across networks when nothing blocks it (IPv6, port
+				// forwarding). This also drops PeerJS's default TURN entries, which
+				// point at turn.peerjs.com hosts that no longer resolve.
+				iceServers: [
+					{ urls: 'stun:stun.cloudflare.com:3478' },
+					{ urls: 'stun:stun.l.google.com:19302' }
+				]
+			}
+		});
 
 		// check if we are joining an existing peer via URL
 		const peerIdInUrl = new URLSearchParams(window.location.hash.replace('#', '?')).get('peer');
@@ -51,16 +67,31 @@
 			if (peerIdInUrl) {
 				// auto-connect if peer id exists in URL
 				state = { state: 'dialing', remotePeerId: peerIdInUrl };
-				const conn = peer.connect(peerIdInUrl);
-				handleConnection(conn);
+				handleConnection(peer.connect(peerIdInUrl), true);
 			} else {
 				state = { state: 'idle', peerId: id };
-				peer.on('connection', handleConnection);
+				peer.on('connection', (conn) => handleConnection(conn, false));
 			}
 		});
 
 		peer.on('error', (err) => {
 			console.error(err);
+
+			// the share link points at a peer id that is gone, usually because the host reloaded
+			if (err.type === 'peer-unavailable') {
+				fail('That share link has expired. Ask the other device for a fresh QR code.');
+				return;
+			}
+
+			// the signaling socket never opened, so there is nothing left to wait for
+			if (state.state === 'connecting') {
+				state = {
+					state: 'failed',
+					message: 'Could not reach the signaling server. Check your connection and try again.'
+				};
+				return;
+			}
+
 			toast.error('Peer error occurred');
 		});
 
@@ -80,29 +111,71 @@
 		};
 	});
 
-	function handleConnection(conn: PeerJS.DataConnection) {
+	/** Moves the UI to the failure screen, but only while a dial is in flight. */
+	function fail(message: string) {
+		if (state.state !== 'dialing') return;
+		state = { state: 'failed', message };
+	}
+
+	/**
+	 * Wires a data connection and walks the UI through its lifecycle. `dialed`
+	 * is true when this device started the connection; only then does a dead
+	 * connection replace the share screen with an error.
+	 */
+	function handleConnection(conn: PeerJS.DataConnection, dialed: boolean) {
 		connection = conn;
 
-		let hasCelebrated = false;
+		let opened = false;
+
+		// ICE can stall for a long time on networks that drop the handshake
+		// silently, so fail loudly instead of spinning forever.
+		const timeout = dialed
+			? window.setTimeout(
+					() => fail('Could not reach the other device. Try both devices on the same Wi-Fi.'),
+					20_000
+				)
+			: undefined;
 
 		conn.on('open', () => {
-			// Prevent duplicate success effects (confettti, toast)
-			if (hasCelebrated) return;
+			window.clearTimeout(timeout);
+
+			// Prevent duplicate success effects (confetti, toast)
+			if (opened) return;
 			state = { state: 'connected', connection: conn };
-			hasCelebrated = true;
+			opened = true;
 
 			toast.success(`Connected to peer ${conn.peer}`);
 			fireConfetti();
 		});
 
 		conn.on('close', () => {
-			state = { state: 'disconnected' };
-			toast.warning('Peer disconnected');
+			window.clearTimeout(timeout);
+
+			if (opened) {
+				state = { state: 'disconnected' };
+				toast.warning('Peer disconnected');
+				return;
+			}
+
+			if (dialed) {
+				fail('The other device closed the connection before it was ready.');
+			}
 		});
 
 		conn.on('error', (err) => {
+			window.clearTimeout(timeout);
 			console.error('Connection error:', err);
-			toast.error('Connection lost');
+
+			if (opened) {
+				toast.error('Connection lost');
+				return;
+			}
+
+			if (dialed) {
+				fail('Could not connect. Try both devices on the same Wi-Fi.');
+			} else {
+				toast.error('A device failed to connect');
+			}
 		});
 	}
 
@@ -184,6 +257,16 @@
 
 					<Button onclick={() => window.location.reload()} variant="outline" class="w-full">
 						Refresh
+					</Button>
+				</div>
+			{:else if state.state === 'failed'}
+				<div class="flex flex-col items-center gap-4 text-center">
+					<p class="text-sm font-medium text-destructive">Connection failed</p>
+
+					<p class="text-sm text-muted-foreground">{state.message}</p>
+
+					<Button onclick={() => window.location.reload()} variant="outline" class="w-full">
+						Try again
 					</Button>
 				</div>
 			{/if}
