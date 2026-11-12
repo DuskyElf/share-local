@@ -3,12 +3,12 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import QrCode from '$lib/components/ui/qr-code/qr-code.svelte';
-	import GithubRibbon from '$lib/components/ui/github-ribbon/github-ribbon.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import ThemeToggle from '$lib/components/ui/theme-toggle.svelte';
+	import QrCode from '#lib/components/ui/qr-code/qr-code.svelte';
+	import GithubRibbon from '#lib/components/ui/github-ribbon/github-ribbon.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import ThemeToggle from '#lib/components/ui/theme-toggle.svelte';
 
-	import { fireConfetti } from '$lib/confetti';
+	import { fireConfetti } from '#lib/confetti.js';
 
 	type State =
 		| {
