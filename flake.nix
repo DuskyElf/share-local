@@ -3,32 +3,33 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs =
+    { nixpkgs, ... }:
+    let
+      inherit (nixpkgs) lib;
+      forAllSystems = lib.genAttrs lib.systems.flakeExposed;
+    in
     {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nodejs
-            pnpm
-            prettierd
-            svelte-language-server
-            tailwindcss-language-server
-            typescript-language-server
-            vscode-langservers-extracted
-          ];
-        };
-      }
-    );
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              nodejs
+              pnpm
+              prettierd
+              svelte-language-server
+              tailwindcss-language-server
+              typescript-language-server
+              vscode-langservers-extracted
+            ];
+          };
+        }
+      );
+    };
 }
